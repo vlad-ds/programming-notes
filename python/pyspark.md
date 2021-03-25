@@ -1,6 +1,12 @@
 # PySpark
 
+Spark is written in Scala but available in other languages. At the center of Spark is the Apache Spark Core. The rest of the libraries are built on top of it by accessing the RDD API. These libraries are: Spark SQL, MLlib Machine Learning, GraphX and Spark Streaming. 
+
+Spark can be deployed in Local mode or in Cluster mode. Usually you start in Local for development and then move to Cluster for production. No code change is necessary in the transition from Local to Cluster. 
+
 Spark works in cluster to split tasks and parallelize computations. The cluster is hosted on a remote machine called *master* that splits up the data. The master is connected to the other computers, which are *workers*. 
+
+PySpark is the Python API for Spark. 
 
 To create a connection you instantiate the `SparkContext` class. 
 
@@ -316,3 +322,303 @@ aggregated.show()
 ```
 
 To run Spark you use `spark-submit`. It sets up launch environment for use with the *cluster manager* and the selected *deploy mode*. 
+
+---
+
+## Testing
+
+To provide unit testing for our pipelines, we construct DataFrames in memory. For testing, it is best to have small, reusable and well-named functions. Each transformation can be tested and reused. 
+
+```python
+from datetime import date
+from pyspark.sql import Row
+
+Record = Row("country", "utm_campaign", "airtime_in_minutes", "start_date", "end_date")
+
+# Create a tuple of records
+data = (
+  Record("USA", "DiapersFirst", 28, date(2017, 1, 20), date(2017, 1, 27)),
+  Record("Germany", "WindelKind", 31, date(2017, 1, 25), None),
+  Record("India", "CloseToCloth", 32, date(2017, 1, 25), date(2017, 2, 2))
+)
+
+# Create a DataFrame from these records
+frame = spark.createDataFrame(data)
+frame.show()
+```
+
+The best known Python modules for tests are `unittest`, `doctest`, `pytest`, `nose`. The first 2 are in stdlib. Their core task is to `assert` something. 
+
+CI/CD:
+
+* **Continuous Integration**. Get code changes integrated with the master branch regularly. Only if tests pass.
+* **Continuous delivery**. All artifacts should be in a deployable state at any time without any problem. 
+
+CircleCI is a service that runs tests. It looks for `.circleci/config.yml`. The workflow is: checkout code, install test & build requirements, run tests, package/build the software artefacts. 
+
+----
+
+PySpark shell. Python CLI that allows interface with Spark data structures. Supports connection to a cluster. 
+
+`SparkContext` is an entry point, where control is transferred from the OS to the program. You can access it in the PySpark shell as `sc`. 
+
+```bash
+sc.version 		#SparkContext version
+sc.pythonVer 	#Python version
+sc.master 		#URL of the cluster (or "local" to run in local)
+```
+
+Two ways to load data in PySpark: 
+
+```python
+rdd1 = sc.parallelize([1, 2, 3, 4, 5], minPartitions=6)
+rdd2 = sc.textFile("test.txt", minPartitions=6)
+rdd2.getNumPartitions() #get the number of partitions
+```
+
+**RDDs** are Spark's core abstraction for working with data. It stands for **Resilient Distributed Datasets**. It is an immutable collection of data distributed across the cluster. It is the fundamental and backbone data type in Spark. 
+
+Given a data file on disk, Spark driver creates an RDD and distributes data among nodes. 
+
+* Resilient. Ability to withstand failures. 
+* Distributed. Jobs are distributed across multiple nodes for efficient computation. 
+* Datasets. A collection of partitioned data (Arrays, Tables, Tuples).
+
+You can create an RDD by parallelizing an existing collection of objects or by loading data from external datasets (files in HDFS, Objects in Amazon S3, or lines in a text file). They can also be created from existing RDDs. 
+
+RDDs support two types of operations: **transformations** and **actions**. Transformations create new RDDs. Actions perform computations on the RDD. Transformations use **lazy evaluation**. Execution of the transformation graph happens only when an action is performed on RDD. 
+
+Basic RDD operations are `map`, `filter`, `flatMap` and `union`. `map` applies a function to every element. `filter` selects elements based on a boolean function. `flatMap` works like map but returns multiple elements for every input (e.g. splitting a string). `union` returns the union between RDDs. 
+
+Actions return a value after running a computation on the RDD. Basic actions are `collect`, `take(n)`, `first` and `count`.  
+
+```python
+# Filter the fileRDD to select lines with Spark keyword
+fileRDD_filter = fileRDD.filter(lambda line: 'Spark' in line)
+
+# How many lines are there in fileRDD?
+print("The total number of lines with the keyword Spark is", fileRDD_filter.count())
+
+# Print the first four lines of fileRDD
+for line in fileRDD_filter.take(4): 
+  print(line)
+```
+
+Pair RDD is a special data structure to work with datasets where each row is a key that maps to one or more values. They can be created from a list of key-value tuples or from a regular RDD. 
+
+```python
+my_tuple = [('Sam', 23), ('Mary', 34), ('Peter', 25)]
+pairRDD_tuple = sc.parallelize(my_tuple)
+
+my_list = ['Sam 23', 'Mary 34', 'Peter 25']
+regularRDD = sc.parallelize(my_list)
+pairRDD_RDD = regularRDD.map(lambda s: (s.split(' ')[0], s.split(' ')[1]))
+
+```
+
+All regular transformations work on RDDs but you have to pass functions that operate on key value pairs. Typical transformations are `reduceByKey`, `groupByKey`, `sortByKey` and `join`. 
+
+```python
+# Create PairRDD Rdd with key value pairs
+Rdd = sc.parallelize([(1,2),(3,4),(3,6),(4,5)])
+
+# Apply reduceByKey() operation on Rdd
+Rdd_Reduced = Rdd.reduceByKey(lambda x, y: x+y)
+
+# Iterate over the result and print the output
+for num in Rdd_Reduced.collect(): 
+  print("Key {} has {} Counts".format(num[0], num[1]))
+```
+
+```python
+# Sort the reduced RDD with the key by descending order
+Rdd_Reduced_Sort = Rdd_Reduced.SortByKey(ascending=False)
+
+# Iterate over the result and print the output
+for num in Rdd_Reduced_Sort.collect():
+  print("Key {} has {} Counts".format(num[0], num[1]))
+```
+
+```python
+# Sort the reduced RDD with the key by descending order
+Rdd_Reduced_Sort = Rdd_Reduced.sortByKey(ascending=False)
+
+# Iterate over the result and print the output
+for num in Rdd_Reduced_Sort.collect():
+  print("Key {} has {} Counts".format(num[0], num[1]))
+```
+
+Advanced RDD actions. `reduce(func)` is used for aggregating the elements of a regular RDD. To be computed in parallel, the function should be commutative and associative. 
+
+```python
+#summing up all elements in RDD with reduce
+x = [1, 3, 4, 6]
+RDD = sc.parallelize(x)
+RDD.reduce(lambda x, y : x +y)
+```
+
+You can recompose the RDD into a single file and save it as a text file.
+
+```python
+RDD.coalesce(1).saveAsTextFile("tempFile")
+```
+
+RDD actions include `countByKey` and `collectAsMap`. 
+
+```python
+rdd = sc.parallelize([("a", 1), ("b", 1), ("a", 1)])
+for kee, val in rdd.countByKey().items():
+	print(kee, val)
+```
+
+`collectAsMap` returns the key-value pairs in the RDD as a dictionary. This operation loads all the data into memory. 
+
+Example of a task: calculating the most common words in the Complete Works of Shakespeare. 
+
+```python
+# Create a baseRDD from the file path
+baseRDD = sc.textFile(file_path)
+
+# Split the lines of baseRDD into words
+splitRDD = baseRDD.flatMap(lambda x: x.split(' '))
+
+# Count the total number of words
+print("Total number of words in splitRDD:", splitRDD.count())
+
+# Convert the words in lower case and remove stop words from stop_words
+splitRDD_no_stop = splitRDD.filter(lambda x: x.lower() not in stop_words)
+
+# Create a tuple of the word and 1 
+splitRDD_no_stop_words = splitRDD_no_stop.map(lambda w: (w, 1))
+
+# Count of the number of occurences of each word
+resultRDD = splitRDD_no_stop_words.reduceByKey(lambda x, y: x + y)
+
+# Display the first 10 words and their frequencies
+for word in resultRDD.take(10):
+	print(word)
+
+# Swap the keys and values 
+resultRDD_swap = resultRDD.map(lambda x: (x[1], x[0]))
+
+# Sort the keys in descending order
+resultRDD_swap_sort = resultRDD_swap.sortByKey(ascending=False)
+
+# Show the top 10 most frequent words and their frequencies
+for word in resultRDD_swap_sort.take(10):
+	print("{} has {} counts". format(word[1], word[0]))
+```
+
+---
+
+## PySpark SQL
+
+Main abstraction is PySpark DataFrame. An immutable distributed collection of data with named columns. Designed for both structured and semi-structured data. DataFrames support both SQL queries and expression methods. 
+
+`SparkSession` provides a single point of entry to intreact with Spark DataFrames. It's available in shell as `spark`. 
+
+DataFrames can be created from existing RDDs with the `createDataFrame()` method and from various data sources with the `read` method. 
+
+`Schema` defines the structure of data and helps Spark to optimize queries on the data. 
+
+```python
+# Create a list of tuples
+sample_list = [('Mona',20), ('Jennifer',34), ('John',20), ('Jim',26)]
+
+# Create a RDD from the list
+rdd = sc.parallelize(sample_list)
+
+# Create a PySpark DataFrame
+names_df = spark.createDataFrame(rdd, schema=['Name', 'Age'])
+
+# Check the type of names_df
+print("The type of names_df is", type(names_df))
+```
+
+```python
+# Create an DataFrame from file_path
+people_df = spark.read.csv(file_path, header=True, inferSchema=True)
+
+# Check the type of people_df
+print("The type of people_df is", type(people_df))
+```
+
+Common Transformations: `select`, `filter`, `groupby`, `orderby`, `dropDuplicates`, `withColumnRenamed`. 
+
+Common Actions: `printSchema`, `head`, `show`, `count`, `columns`, `describe`. 
+
+You can interact through the DataFrame API or through SQL queries. API calls are easier to construct programmatically. SQL queries are concise, easier to understand and highly portable. 
+
+```python
+#to use SQL, we create a temporary view of our dataframe
+df.createOrReplaceTempView("table1")
+df2 = spark.sql("SELECT field1, field2 FROM table1")
+df2.collect()
+```
+
+Visualization. Is done with three methods: `pyspark_dist_explore` library, `toPandas()`, `HandySpark` library. 
+
+`pyspark_dist_explore` only has three methods: `hist`, `distplot`, `pandas_histogram`. 
+
+Differences between Pandas DataFrame vs Pyspark DataFrame:
+
+1. Pandas DFs are in memory, single-server. Operations on PySpark run in parallel. 
+2. Operations in PySpark are lazy evaluation. 
+3. PySpark DFs are immutable. 
+4. Pandas API supports more operations.
+
+---
+
+## PySpark MLlib
+
+Library specialized in machine learning. Provides ML algorithms, featurization, pipelines. It only supports `RDD`. 
+
+Contains data dypes `Vectors` and `LabeledPoint`. Vectors can be sparse or dense. `LabeledPoint` includes features and predicted value. 
+
+Collaborative filtering example: 
+
+```python
+# Load the data into RDD
+data = sc.textFile(file_path)
+
+# Split the RDD 
+ratings = data.map(lambda l: l.split(','))
+
+# Transform the ratings RDD 
+ratings_final = ratings.map(lambda line: Rating(int(line[0]), int(line[1]), float(line[2])))
+
+# Split the data into training and test
+training_data, test_data = ratings_final.randomSplit([0.8, 0.2])
+```
+
+```python
+# Create the ALS model on the training data
+model = ALS.train(training_data, rank=10, iterations=10)
+
+# Drop the ratings column 
+testdata_no_rating = test_data.map(lambda p: (p[0], p[1]))
+
+# Predict the model  
+predictions = model.predictAll(testdata_no_rating)
+
+# Print the first rows of the RDD
+predictions.take(2)
+```
+
+```python
+# Prepare ratings data
+rates = ratings_final.map(lambda r: ((r[0], r[1]), r[2]))
+
+# Prepare predictions data
+preds = predictions.map(lambda r: ((r[0], r[1]), r[2]))
+
+# Join the ratings data with predictions data
+rates_and_preds = rates.join(preds)
+
+# Calculate and print MSE
+MSE = rates_and_preds.map(lambda r: (r[1][0] - r[1][1])**2).mean()
+print("Mean Squared Error of the model for the test data = {:.2f}".format(MSE))
+```
+
+Classification example: 
+

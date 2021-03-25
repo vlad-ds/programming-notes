@@ -242,3 +242,44 @@ To run a full DAG:
 ```
 airflow trigger_dag -e <date> <dag_id>
 ```
+
+---
+
+A concise and elegant DAG definition: 
+
+```python
+spark_args = {"py_files": dependency_path,
+              "conn_id": "spark_default"}
+# Define ingest, clean and transform job.
+with dag:
+    ingest = BashOperator(task_id='Ingest_data', 
+                          bash_command='tap-marketing-api | target-csv --config %s' % config)
+    clean = SparkSubmitOperator(application=clean_path, 
+                                task_id='clean_data', 
+                                **spark_args)
+    insight = SparkSubmitOperator(application=transform_path, 
+                                  task_id='show_report', 
+                                  **spark_args)
+    
+    # set triggering sequence
+    ingest >> clean >> insight
+```
+
+---
+
+## Deploying Airflow
+
+In a clean Linux image:
+
+```bash
+export AIRFLOW_HOME=~/airflow
+pip install apache-airflow
+airflow initdb #creates the airflow/ directory
+```
+
+Default Airflow DB is SQLite. The `.cfg` file defines which Executor will be used. Default is `SequentialExecutor`. 
+
+The `tests` folder will have unit tests for deployment, and ensure consistency across DAGs. 
+
+To upload your DAGs to the server, you can clone your repo on the Airflow server. Or you can copy the DAG file to the server with a tool like `rsync`. Or you make use of packaged DAGs, which are zipped archives that promote isolation between projects. 
+
