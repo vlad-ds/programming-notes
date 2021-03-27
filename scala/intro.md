@@ -156,9 +156,14 @@ def pointsToBust(hand: Int): Int = {
 }
 ```
 
+Scala is preferably functional but it can also be imperative. Imperative means: one command at a time, iterate with loops, mutate shared state. The `foreach` command is a functional feature: it's a method that takes a function as argument and replaces the loop. 
 
+```scala
+var hands = Array(17, 24, 21)
+hands.foreach(<FUNCTION>)
+```
 
-
+In the functional style, side effects should be avoided. Side effect: code that modifies some variable outside of its local scope. 
 
 
 
