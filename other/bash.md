@@ -160,3 +160,36 @@ region_temps+=($average_temp)
 echo ${region_temps[@]}
 ```
 
+IF statements: 
+
+```bash
+x="Queen"
+if [ $x == "King"]; then
+	echo "$x is a King!"
+else
+	echo "$x is not a King!"
+fi
+```
+
+```bash
+x=10
+if (($x > 5)); then
+	echo "$x is more than 5!"
+fi
+#alternative with greater than
+if [ $x -gt 5 ]; then
+	echo "$x is more than 5!"
+fi
+#testing for multiple conditions
+x=10
+if [[ $x -gt 5 && $x -lt 11]]; then
+	echo "$x is more than 5 and less than 11!"
+fi
+#conditional with command-line program
+if grep -q Hello words.txt; then
+	echo "Hello is inside!"
+fi
+```
+
+There are plenty more flags to use in Bash conditional expressions. 
+
