@@ -193,3 +193,28 @@ fi
 
 There are plenty more flags to use in Bash conditional expressions. 
 
+FOR loop:
+
+```bash
+#for loop
+for x in 1 2 3
+do
+	echo $x
+done
+#brace expansion
+for x in {1..5..2}
+do
+	echo $x
+done
+#three expression syntax
+for((x=2;x<=4;x+=2))
+do
+	echo $x
+done
+#glob expansion
+for book in books/*
+do
+	echo $book
+done
+```
+
