@@ -216,5 +216,182 @@ for book in books/*
 do
 	echo $book
 done
+#shell within a shell
+for book in $(ls books/ | grep -i 'air')
+do
+	echo $book
+done
 ```
+
+While loops:
+
+```bash
+x=1
+while [ $x -le 3 ]
+do
+	echo $x
+	((x+=1))
+done
+```
+
+Here's a script that identifies Python files which contain the `RandomForestClassifier`:
+
+```bash
+# Create a FOR statement on files in directory
+for file in robs_files/*.py
+do  
+    # Create IF statement using grep
+    if grep -q 'RandomForestClassifier' $file ; then
+        # Move wanted files to to_keep/ folder
+        mv $file to_keep/
+    fi
+done
+```
+
+CASE statements:
+
+```
+case MATCHVAR in
+  PATTERN1)
+  COMMAND1;;
+  PATTERN2)
+  COMMAND2;;
+  *)
+  DEFAULT COMMAND;;
+esac
+```
+
+Example:
+
+```bash
+# Create a CASE statement matching the first ARGV element
+case $1 in
+  # Match on all weekdays
+  Monday|Tuesday|Wednesday|Thursday|Friday)
+  echo "It is a Weekday!";;
+  # Match on all weekend days
+  Saturday|Sunday)
+  echo "It is a Weekend!";;
+  # Create a default
+  *) 
+  echo "Not a day!";;
+esac
+```
+
+Find all tree models and move them in a folder, delete the others:
+
+```bash
+# Use a FOR loop for each file in 'model_out/'
+for file in model_out/*
+do
+    # Create a CASE statement for each file's contents
+    case $(cat $file) in
+      # Match on tree and non-tree models
+      *"Random Forest"*|*GBM*|*XGBoost*)
+      mv $file tree_models/ ;;
+      *KNN*|*Logistic*)
+      rm $file ;;
+      *)
+      # Create a default
+      DEFAULT COMMAND
+      echo "Unknown model in $file" ;;
+    esac
+done
+```
+
+Functions: 
+
+```bash
+#define
+function print_hello(){
+	echo "Hello world!"
+}
+print_hello
+```
+
+```bash
+#converting fahrenheit to celsius
+temp_f=30
+function convert_temp(){
+	temp_c=$(echo "scale=2; ($tempf - 32) * 5 / 9" | bc)
+	echo $temp_c
+}
+```
+
+```bash
+# Create function
+function upload_to_cloud () {
+  # Loop through files with glob expansion
+  for file in output_dir/*results*
+  do
+    # Echo that they are being uploaded
+    echo "Uploading $file to cloud"
+  done
+}
+
+# Call the function
+upload_to_cloud
+```
+
+In Bash, all vars are global by default. You can make a variable local like this:
+
+```bash
+local first_filename=$1
+```
+
+The `return` option in Bash is only used to determine if the function was a success (0) or a failure(1-255). To "return" vars, we can assign them to a global variable or echo the result and access the function with a shell within a shell. 
+
+Using a function with shell-in-shell:
+
+```bash
+# Create a function 
+function return_percentage () {
+
+  # Calculate the percentage using bc
+  percent=$(echo "scale=2; 100 * $1 / $2" | bc)
+
+  # Return the calculated percentage
+  echo $percent
+}
+
+# Call the function with 456 and 632 and echo the result
+return_test=$(return_percentage 456 632)
+echo "456 out of 632 as a percent is $return_test%"
+```
+
+Using a function with global var:
+
+```bash
+# Create a function
+function get_number_wins () {
+
+  # Filter aggregate results by argument
+  win_stats=$(cat soccer_scores.csv | cut -d "," -f2 | egrep -v 'Winner'| sort | uniq -c | egrep "$1")
+
+}
+
+# Call the function with specified argument
+get_number_wins "Etar"
+
+# Print out the global variable
+echo "The aggregated stats are: $win_stats"
+```
+
+Scheduling scripts with CRON: 
+
+```bash
+#run myscript every day at 1:05 am
+5 1 * * * bash myscript.sh
+#run at 2:15pm every Sunday
+15 14 * * 7 bash myscript.sh
+```
+
+To schedule a script: 
+
+* type `crontab -e` to edit your list of cronjobs
+* write the cronjob on a blank line
+* save and exit the editor
+* check the job is there by running `crontab -l`
+
+
 
