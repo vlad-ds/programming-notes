@@ -128,3 +128,285 @@ ALTER TABLE dim_author ADD COLUMN author_id SERIAL PRIMARY KEY;
 SELECT * FROM dim_author;
 ```
 
+The normalized snowflake schemas has more tables. Which means more joins and slower queries. So why would we want to normalize a database? 
+
+* Normalization saves space as it reduces redundancy.
+* Normalization ensures better data integrity. It enforces data consistency, enables safer updating, removing and inserting. And it makes it easier to redesign by extending. 
+* E.g. you can enforce naming conventions through referential integrity (instead of writing California in different ways, you will have to enter the ID for California.)
+* E.g. to change the spelling of California, you will only need to change one record. And you can be confident that the new spelling will be enacted for all stores. 
+
+Ultimately it comes down to how read- or write-intensive your database is going to be:
+
+* OLTP is write intensive. It is typically highly normalized. It prioritizes quicker and safer insertion of data. 
+* OLAP is read intensive. It is typically less normalized. 
+
+The goals of normalization are to:
+
+* Be able to characterize the level of redundancy in a relational schema.
+* Provide mechanisms for transforming schemas in order to remove redundancy.
+
+*Database Design*, Adrienne Watt.
+
+There are many normal forms (NF) of different orders. 
+
+* **1NF**. Each record must be unique - no duplicate rows. Each cell must hold one value.
+* **2NF**. Must satisfy 1NF. Primary key is one column. If there's a composite primary key, each non-key column must be dependent on all keys. 
+* **3NF**. Satisfies 2NF. No transitive dependencies: non-key columns can't depend on other non-key columns. 
+
+A database that isn't normalized enough is prone to 3 types of anomaly errors:
+
+* Update anomaly. Data inconsistency caused by data redundancy when updating.
+* Insertion anomaly. Being unable to add a new record due to missing attributes. 
+* Deletion anomaly. When deleting a record causes unintentional loss of data. 
+
+---
+
+### Database views
+
+A view is the result set of a stored query on the data, which the db users can query just as they would in a persistent database collection set.
+
+Views are virtual tables that are not part of the physical schema. The query, not the data is stored in memory. Data is aggregated from data in tables. It can be queried like a regular table. 
+
+The benefit of the view is that you don't need to retype common queries or alter schemas. 
+
+To get all the views in Postgres:
+
+```sql
+-- This query excludes system views
+SELECT * FROM INFORMATION_SCHEMA.views
+WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+```
+
+Advantages of views:
+
+1. Don't take up any storage.
+2. Allow access control (hide sensitive columns, restrict what user can see).
+3. Mask the complexity of queries (useful for highly normalized schemas).
+
+Creating and using a view:
+
+```sql
+-- Create a view for reviews with a score above 9
+CREATE VIEW high_scores AS
+SELECT * FROM REVIEWS
+WHERE score > 9;
+
+-- Count the number of self-released works in high_scores
+SELECT COUNT(*) FROM high_scores
+INNER JOIN labels ON high_scores.reviewid = labels.reviewid
+WHERE label = 'self-released';
+```
+
+We can grant and revoke privileges for a view. 
+
+```sql
+-- granting update rights to everyone
+GRANT UPDATE ON ratings TO PUBLIC;
+-- revoking insert rights from a user
+REVOKE INSERT ON films FROM db_user;
+```
+
+Users with the necessary privilege can update a view or insert new date:
+
+```sql
+UPDATE films SET kind = 'Dramatic' WHERE kind = 'Drama'
+
+INSERT INTO films (code, title, did, date_prod, kind)
+	VALUES ('T_601', 'Yojimbo', 106, '1961-06-16', 'Drama')
+```
+
+Not all views however are updatable. Because the update affects the underlying tables. It's good practice to avoid modifying data through views. 
+
+To drop a view:
+
+```sql
+DROP VIEW view_name [CASCADE | RESTRICT]
+```
+
+RESTRICT is default and returns an error if there are objects that depend on the view. 
+
+CASCADE will drop the objects that depend on the view. 
+
+To redefine a view:
+
+```sql
+CREATE OR REPLACE VIEW view_name AS new_query
+```
+
+The new query must generate the same column names, order and data types, although it might also add new columns at the end. 
+
+It is also possible to alter views:
+
+```sql
+ALTER VIEW [ IF EXISTS ] name ALTER [ COLUMN ] column_name SET DEFAULT expression
+```
+
+**Materialized views** are physically materialized. They store the query results, not the query. They are refreshed or rematerialized when prompted. 
+
+They are useful for queries with long execution time. The data is only as update as the last time it was refreshed. So they're not good for use cases where the data needs to updated often. 
+
+Materialized views are typically used in DWH (OLAP). 
+
+```sql
+CREATE MATERIALIZED VIEW my_mv AS SELECT * FROM existing_Table;
+
+REFRESH MATERIALIZED VIEW my_mv
+```
+
+Typically we use DAGs to manage view dependencies and schedule refresh times. Two views can't depend on each other. 
+
+---
+
+### Roles and access control
+
+A database role is an entity that:
+
+* Defines the role's privileges
+* Interacts with the client auth system
+* Can be assigned to one or more users
+* Are global across a database cluster installation
+
+```sql
+CREATE ROLE data_analyst;
+CREATE ROLE intern WITH PASSWORD 'password' VALID UNTIL '2020-01-01';
+CREATE ROLE admin CREATEDB;
+```
+
+```sql
+GRANT UPDATE ON ratings TO data_analyst;
+REVOKE UPDATE ON ratings FROM data_analyst;
+```
+
+Create a user role and assign it to a group role:
+
+```sql
+CREATE ROLE data_analyst;
+CREATE ROLE alex WITH PASSWORD 'password';
+GRANT data_analyst TO alex;
+REVOKE data_analyst FROM alex;
+```
+
+Postgres has a set of default roles. 
+
+```sql
+-- Grant data_scientist update and insert privileges
+GRANT UPDATE, INSERT ON long_reviews TO data_scientist;
+
+-- Give Marta's role a password
+ALTER ROLE marta WITH PASSWORD 's3cur3p@ssw0rd';
+```
+
+---
+
+### Table partitioning
+
+As tables grow queries become slower. That's when we want to split tables into multiple smaller parts (partitioning). Partitioning is part of the physical data model. 
+
+Types:
+
+* Vertical partitioning. Split a table by its columns. Store rarely retrieved fields on a slower medium.
+* Horizontal partitioning. Split over the rows. E.g. according to a timestamp. 
+
+When horizontal partitioning is applied to spread a table over several machines, it's called **sharding**. Sharding opens the way to parallelization.
+
+Vertical partitioning:
+
+```sql
+-- Create a new table called film_descriptions
+CREATE TABLE film_descriptions (
+    film_id INT,
+    long_description TEXT
+);
+
+-- Copy the descriptions from the film table
+INSERT INTO film_descriptions
+SELECT film_id, long_description FROM film;
+    
+-- Drop the descriptions from the original table
+ALTER TABLE film
+DROP COLUMN long_description;
+
+-- Join to view the original table
+SELECT * FROM film 
+JOIN film_descriptions
+ON film_descriptions.film_id = film.film_id
+```
+
+Horizontal partition: 
+
+```sql
+-- Create a new table called film_partitioned
+CREATE TABLE film_partitioned (
+  film_id INT,
+  title TEXT NOT NULL,
+  release_year TEXT
+)
+PARTITION BY LIST (release_year);
+
+-- Create the partitions for 2019, 2018, and 2017
+CREATE TABLE film_2019
+	PARTITION OF film_partitioned FOR VALUES IN ('2019');
+
+CREATE TABLE film_2018
+	PARTITION OF film_partitioned FOR VALUES IN ('2018');
+
+CREATE TABLE film_2017
+	PARTITION OF film_partitioned FOR VALUES IN ('2017');
+
+-- Insert the data into film_partitioned
+INSERT INTO film_partitioned
+SELECT film_id, title, release_year FROM film;
+
+-- View film_partitioned
+SELECT * FROM film_partitioned;
+```
+
+---
+
+### Data integration
+
+Combines data from different sources, formats, technologies to provide users with a translated and unified view of that data. 
+
+Unified data model needs to be decided based on the use case. 
+
+Transformations. Program that extracts data from the sources and transforms it in accordance with the unified data model. Your integration tool should be flexible, reliable and scalable. Automated testing and proactive alerts. 
+
+Security is also an important concern. Anonymize data during ETL. 
+
+---
+
+### DBMS
+
+Database Management System. Manages:
+
+1. Data
+2. Database schema
+3. Database engine
+
+Business case and type of data --> Type of Database --> DBMS choice.
+
+Two kinds: SQL and NoSQL. 
+
+SQL. Based on the relational model. Best option when data is structured and unchanging. Data must be consistent. 
+
+NoSQL. Less structured. Document centered. No well defined rows and columns. Good for rapid growth and flexibility. Four types:
+
+1. Key-value. Session information in web apps (shopping carts). Redis.
+2. Document store. Values have some structure. Content management apps (blogs and video platforms). MongoDB.
+3. Columnar database. Each column is a separate file in the system storage. Scalable, faster at scale. Big data analytics. Example is Cassandra. 
+4. Graph database. Social media data, recommendations. Neo4J. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
