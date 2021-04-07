@@ -210,9 +210,21 @@ spark.sql("SELECT COUNT(DISTINCT word) AS words FROM table1").explain()
 
 **ETS**. Extract, Transform, Select. 
 
+Sometimes your data needs a transformation that is not supported by built-in functions. This is where a custom user defined function ("UDF") is suitable. 
 
+`CountVectorizer` converts an array of strings into a sparse vector. 
 
+```python
+# Selects the first element of a vector column
+first_udf = udf(lambda x:
+            float(x.indices[0]) 
+            if (x and hasattr(x, "toArray") and x.numNonzeros())
+            else 0.0,
+            FloatType())
 
+# Apply first_udf to the output column
+df.select(first_udf("output").alias("result")).show(5)
+```
 
-
+ 
 
