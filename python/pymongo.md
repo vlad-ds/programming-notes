@@ -205,7 +205,7 @@ db.prizes.find_one({"laureates.share": "3"},
                   skip=3, sort=[("year", 1)])   
 ```
 
-Using sort, skip' and limit to retrieve "pages":
+Using sort, skip and limit to retrieve "pages":
 
 ```python
 from pprint import pprint

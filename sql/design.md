@@ -215,7 +215,7 @@ INSERT INTO films (code, title, did, date_prod, kind)
 	VALUES ('T_601', 'Yojimbo', 106, '1961-06-16', 'Drama')
 ```
 
-Not all views however are updatable. Because the update affects the underlying tables. It's good practice to avoid modifying data through views. 
+Not all views however are updateable. Because the update affects the underlying tables. It's good practice to avoid modifying data through views. 
 
 To drop a view:
 
@@ -243,7 +243,7 @@ ALTER VIEW [ IF EXISTS ] name ALTER [ COLUMN ] column_name SET DEFAULT expressio
 
 **Materialized views** are physically materialized. They store the query results, not the query. They are refreshed or rematerialized when prompted. 
 
-They are useful for queries with long execution time. The data is only as update as the last time it was refreshed. So they're not good for use cases where the data needs to updated often. 
+They are useful for queries with long execution time. The data is only as updated as the last time it was refreshed. So they're not good for use cases where the data needs to updated often. 
 
 Materialized views are typically used in DWH (OLAP). 
 

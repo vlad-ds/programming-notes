@@ -4,7 +4,6 @@ From https://www.scala-lang.org/:
 
 ```
 Scala combines object-oriented and functional programming in one concise, high-level language. Scala's static types help avoid bugs in complex applications, and its JVM and JavaScript runtimes let you build high-performance systems with easy access to huge ecosystems of libraries.
-
 ```
 
 Scala was desgined as a better, more concise version of Java. Scala source code compiles to Java bytecode and runs on the Java Virtual Machine. 
@@ -164,12 +163,3 @@ hands.foreach(<FUNCTION>)
 ```
 
 In the functional style, side effects should be avoided. Side effect: code that modifies some variable outside of its local scope. 
-
-
-
-
-
-
-
-
-

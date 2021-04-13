@@ -180,7 +180,7 @@ model_data = model_data.withColumn("plane_age", model_data.year - model_data.pla
 
 Spark does not accept strings. To convert categorical variables:
 
-* Create a `StringIndexer`. This is an `Estimator` that takes a DataFrame with a column of strings and maps each unique string to a number. It retuns a `Transformer` that takes a DataFrame, attaches the mapping to it as metadata, and returns a new DataFrame with the encoded column. 
+* Create a `StringIndexer`. This is an `Estimator` that takes a DataFrame with a column of strings and maps each unique string to a number. It returns a `Transformer` that takes a DataFrame, attaches the mapping to it as metadata, and returns a new DataFrame with the encoded column. 
 * Encode this numeric column as a one-hot vector using a `OneHotEncoder`. 
 
 ```python

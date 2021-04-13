@@ -33,7 +33,7 @@ Issues with CSV files:
 * Files cannot be filtered (no "predicate pushdown")
 * Intermediate file representations require defining a schema, but this cannot be done until all data is loaded
 
-Parquet is a compressed columnar data format. Supported by Spark and data processing frameworks. Supports predicate pushdown and automatically stores schema information. Parquet files are binary. 
+**Parquet** is a compressed columnar data format. Supported by Spark and data processing frameworks. Supports predicate pushdown and automatically stores schema information. Parquet files are binary. 
 
 ```python
 df = spark.read.format('parquet').load('filename.parquet')
@@ -230,7 +230,7 @@ voter_df_april.select('ROW_ID').show()
 
 ---
 
-Caching. Improves speed and reduces resources usage. However, large datasets may not fit in memory. Disk based caching may not be a performance improvement. It only works for repeated tasks. Cache in fast SSD. 
+**Caching**. Improves speed and reduces resources usage. However, large datasets may not fit in memory. Disk based caching may not be a performance improvement. It only works for repeated tasks. Cache in fast SSD. 
 
 ```python
 voter_df = spark.read.csv('voter_data.txt.gz')
