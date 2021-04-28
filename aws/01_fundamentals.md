@@ -124,3 +124,58 @@ You can only have 5 elastic IPs in your AWS account. Overall, it's best to avoid
 
 *Hands on*. By default, the EC2 machine has a private Ip for the internal AWS network and a public IP for WWW. We can only SSh into our EC2 machines through public IP. If the machine restarts, the public IP can change. 
 
+You cannot connect to an instance with its Private IP (this is available only within AWS). If you stop and restart the instance, the public IP will change. You will then need to update your SSH command with the new IP. 
+
+Under Network & Security, select Elastic IPs. Here you can allocate an Elastic IP address. Now the Public IP will not change if the instance is restarted. You can later release the Elastic IP address so you don't pay for it. 
+
+*Launching an Apache Server on EC2*
+
+We will install Apache Web Server and use it to display an `index.html`. 
+
+1. Get the public IP and SSH into your instance. 
+2. `sudo su ` to become root
+3. `yum update -y` to update the machine.
+4. `yum install -y httpd.x86_64` 
+5. `systemctl start httpd.service` to start the service
+6. `systemctl enable httpd.service` to enable across reboots
+7. Apache Server starts on port 80. We need to open that port. 
+8. Select security group. In the inbound rules select edit. Create a rule of type HTTP with TCPC on port 80 and IP `0.0.0.0/0`. 
+9. Access the page at `http://[IP_ADDRESS]:80` and verify the server is active.
+10. `echo "Hello World" > /var/www/html/index.html` to write in our index. 
+
+
+
+*EC2 User Data*
+
+We can boostrap our instances with an EC2 User data script. The script will only run once as the instance first starts. This is used to automate boot tasks. 
+
+1. Terminate the instance. 
+2. Create a new instance. In configure instance, go to Advanced Details. 
+3. Paste the bash script in User data. This scripts will be automatically run with sudo. 
+
+```bash
+#!/bin/bash
+# install httpd
+yum update -y
+yum install -y httpd.x86_64
+systemctl start httpd.service
+systemctl enable httpd.service
+echo "Hello World from $(hostname -f)" > /var/www/html/index.html
+```
+
+4. Pass it the previous security group (`my-first-security-group`). It will open port 80. 
+5. Select the existing key pair. 
+6. Access the page at `http://[IP_ADDRESS]:80`. 
+7. Access the machine with `ssh -i EC2Tutorial.pem ec2-user@[IP]`.
+
+
+
+**#quizzes**
+
+You pay for an EC2 instance **compute** component --> only when it's in "running" state.
+
+You are getting a permission error exception when trying to SSH into your Linux Instance --> the key is missing permissions chmod 0400
+
+You are getting a network timeout when trying to SSH into your EC2 instance --> your security groups are misconfigured
+
+Security groups can reference all the following except --> DNS name (the others were: IP address, CIDR block, Security Group).

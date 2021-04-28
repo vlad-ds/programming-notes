@@ -21,7 +21,7 @@ from datetime import datetime
 default_arguments = {
     'owner': 'jdoe',
     'email': 'joe@datacamp.com',
-    'start_date': datetime(2020, 1 20)
+    'start_date': datetime(2020, 1, 20)
 }
 
 etl_dag = DAG('etl_workflow', default_args=default_arguments)
@@ -214,7 +214,7 @@ Airflow provides a number of built-in runtime variables. E.g. `{{ ds }}` is the 
 
 #### Branching
 
-Provides conditional logic within airflow. Tasks can be executed or skipped depending on the result of an operator. By default we use a `BanchPythonOperator`. Takes a `python_callable` to return the next task id (or list of ids) to follow. 
+Provides conditional logic within airflow. Tasks can be executed or skipped depending on the result of an operator. By default we use a `BranchPythonOperator`. Takes a `python_callable` to return the next task id (or list of ids) to follow. 
 
 ```python
 def branch_test(**kwargs):
@@ -250,6 +250,7 @@ A concise and elegant DAG definition:
 ```python
 spark_args = {"py_files": dependency_path,
               "conn_id": "spark_default"}
+
 # Define ingest, clean and transform job.
 with dag:
     ingest = BashOperator(task_id='Ingest_data', 
