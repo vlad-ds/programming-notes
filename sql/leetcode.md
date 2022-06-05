@@ -1,5 +1,34 @@
 # SQL LeetCode Insights
 
+## Number of Consecutive IDs >= 3
+
+https://leetcode.com/problems/human-traffic-of-stadium/submissions/
+
+```sql
+with t1 as(
+    select id , visit_date , people,
+    id - row_number() OVER(order by id) as grp
+    from Stadium
+    where people >= 100 
+    )
+    select id, visit_date, people
+    from t1 
+    where grp in (select grp from t1 group by grp having count(*) >=3)
+```
+
+| iD   |      | ROW_number | id -row_number |
+| ---- | ---- | ---------- | -------------- |
+| 2    |      | 1          | 1              |
+| 3    |      | 2          | 1              |
+| 5    |      | 3          | 2              |
+| 6    |      | 4          | 2              |
+| 7    |      | 5          | 2              |
+| 8    |      | 6          | 2              |
+| 11   |      | 7          | 4              |
+| 12   |      | 8          | 4              |
+
+ROW_NUMBER always increases linearly. ID increases regularly and then has gaps. If you subtract them, all consecutive IDs will get the same number. 
+
 ## Self Join on Delete
 
 Write an SQL query to **delete** all the duplicate emails, keeping only one unique email with the smallest `id`. Note that you are supposed to write a `DELETE` statement and not a `SELECT` one.
