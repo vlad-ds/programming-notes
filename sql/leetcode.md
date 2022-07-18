@@ -188,3 +188,21 @@ WHERE subdate(w1.Date, 1) = w2.Date
 AND w1.Temperature > w2.Temperature
 ```
 
+## Multiple filters / Difference between `ROW_NUMBER()` and `RANK()`
+
+https://leetcode.com/problems/product-sales-analysis-iii/submissions/
+
+Checking for two values at the same time with `WHERE`. 
+
+```sql
+select
+    product_id,
+    year as first_year,
+    quantity,
+    price
+from Sales
+where (product_id, year) in (select product_id, min(year) from Sales group by 1)
+```
+
+Also, this problem can be solved with a window function, but only if you use `RANK`! In contrast, `ROW_NUMBER()` will fail. Why is that? Because `ROW_NUMBER()` gives a distinct value to every row. So when you filter by `ROW_NUMBER = 1` you are taking only one row. This fails if there are multiple instances of `(product_id, year)` in the `Sales` table. In contrast, `RANK` will give the same value to each of those instances. 
+
