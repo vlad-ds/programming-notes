@@ -4,6 +4,10 @@
 
 It's not a solution if you can't explain it.
 
+If your solution is wrong and you can't understand why, assume you misread the problem description.
+
+Be pragmatic. Simplistic if you must. Take the simplest solution that gets you to the end. You can make it more complex later. 
+
 ## Approaches to consider
 
 When stuck on a problem consider, in order of growing complexity: 
